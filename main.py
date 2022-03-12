@@ -12,7 +12,16 @@ class RandomAgent:
 
 
 def main():
-    env = environments.Simulation()
+    dmc_tasks = [('cartpole', 'balance'),
+                 ('finger', 'spin'),
+                 ('walker', 'walk'),
+                 ('cheetah', 'run')
+                 ]
+    env = environments.Simulation(
+        domain='cartpole',
+        task='balance',
+        # observation_type='position',  # Maria - uncomment this line for easier and faster algorithm confirmation
+    )
     actions = env.env.action_spec()
     agent = RandomAgent(actions)
     state = env.time_step

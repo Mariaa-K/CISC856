@@ -39,7 +39,13 @@ import numpy as np
 
 
 class Simulation:
-    def __init__(self, domain='cartpole', task='swingup'):
+    def __init__(self, domain='cartpole', task='swingup', screen_width=64, screen_height=64, num_cameras=1,
+                 observation_type='image'):
+        self.screen_width = screen_width
+        self.screen_height = screen_height
+        self.num_cameras = num_cameras
+        self.observation_type = observation_type
+
         self.env = suite.load(domain, task)
 
         self.frames = []
@@ -49,16 +55,28 @@ class Simulation:
 
         self.spec = self.env.action_spec()
         self.time_step = self.env.reset()
+        self.frames.append([self.env.physics.render(
+                                        camera_id=x,
+                                        height=self.screen_height,
+                                        width=self.screen_width
+                                        ) for x in range(self.num_cameras)])
 
     def step(self, action, record=False):
         time_step = self.env.step(action)
 
-        cameras = [self.env.physics.render(camera_id=x, height=200, width=200) for x in range(2)]
+        cameras = [self.env.physics.render(
+                                        camera_id=x,
+                                        height=self.screen_height,
+                                        width=self.screen_width
+                                        ) for x in range(self.num_cameras)]
         if record:
             self.frames.append(np.hstack(cameras))
         self.rewards.append(time_step.reward)
         self.observations.append(copy.deepcopy(time_step.observation))
         self.ticks.append(self.env.physics.data.time)
         terminal = False
-        return np.concatenate(list(time_step.observation.values())), time_step.reward, terminal
+        if self.observation_type == 'image':
+            return cameras, time_step.reward, terminal
+        elif self.observation_type == 'position':
+            return np.concatenate(list(time_step.observation.values())), time_step.reward, terminal
 
