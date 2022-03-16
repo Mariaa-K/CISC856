@@ -1,6 +1,8 @@
-dm-control>=0.0.416848645
+dm-control==1.0.0
 
 numpy~=1.22.3
 scikit-video~=1.1.11
 tqdm~=4.63.0
 opencv-python~=4.5.5.64
+gym~=0.23.1
+procgen~=0.10.7
