@@ -1,6 +1,7 @@
-#need to: pip install procgen
+# need to: pip install procgen
 
-import gym #must be version 0.19.0
+import gym  # must be version 0.19.0
+
 
 class ProcgenEnv:
 
@@ -17,7 +18,7 @@ class ProcgenEnv:
     
     def step(self):
 
-        obs, rew, done = self.env.step(self.env.action_space.sample())  #removed fourth output info
+        obs, rew, done, _ = self.env.step(self.env.action_space.sample())  # removed fourth output info
         self.env.render()
         
-        #pass obs, rew, done to Maria's code
+        # pass obs, rew, done to Maria's code
