@@ -40,14 +40,28 @@ above
                     resource_files
                 )
                 if img_source == "images":
-                    self._bg_source = natural_imgsource.RandomImageSource(shape2d, files, grayscale=True, total_frames=total_frames)
+                    self._bg_source = natural_imgsource.RandomImageSource(shape2d,
+                                                                          files,
+                                                                          grayscale=True,
+                                                                          total_frames=total_frames)
                 elif img_source == "video":
-                    self._bg_source = natural_imgsource.RandomVideoSource(shape2d, files, grayscale=True, total_frames=total_frames)
+                    self._bg_source = natural_imgsource.RandomVideoSource(shape2d,
+                                                                          files,
+                                                                          grayscale=True,
+                                                                          total_frames=total_frames)
                 else:
                     raise Exception("img_source %s not defined." % img_source)
 
         self.env = suite.load(domain, task)
 
+        self.frames, self.ticks, self.rewards, self.observations = [], [], [], []
+        self.spec, self.time_step = None, None
+        self.reward_range = [0]
+        self.reset()
+        self.actions_count = self.env.action_spec().shape[0]
+        self.observation_shape = self._get_obs().shape
+
+    def reset(self):
         self.frames = []
         self.ticks = []
         self.rewards = []
@@ -60,19 +74,25 @@ above
                                         height=self.screen_height,
                                         width=self.screen_width
                                         ) for x in range(self.num_cameras)])
+        return self._get_obs()
 
     def _get_obs(self):
-        # Stolen from deep_bism4control
-        obs = self.env.physics.render(
-                                    camera_id=0,
-                                    height=self.screen_height,
-                                    width=self.screen_width)
-        if self._img_source is not None:
-            mask = np.logical_and((obs[:, :, 2] > obs[:, :, 1]), (obs[:, :, 2] > obs[:, :, 0]))  # hardcoded for dmc
-            bg = self._bg_source.get_image()
-            obs[mask] = bg[mask]
-        obs = obs.transpose(2, 0, 1).copy()  # I'm not sure why this needs to happen.
-        return obs
+        if self.observation_type == 'position':
+            return np.concatenate(list(self.time_step.observation.values()))
+        else:
+            # Check the following link for distractors.
+            # https://github.com/facebookresearch/deep_bisim4control/blob/main/dmc2gym/natural_imgsource.py
+            # Stolen from deep_bism4control
+            obs = self.env.physics.render(
+                                        camera_id=0,
+                                        height=self.screen_height,
+                                        width=self.screen_width)
+            if self._img_source is not None:
+                mask = np.logical_and((obs[:, :, 2] > obs[:, :, 1]), (obs[:, :, 2] > obs[:, :, 0]))  # hardcoded for dmc
+                bg = self._bg_source.get_image()
+                obs[mask] = bg[mask]
+            obs = obs.transpose(2, 0, 1).copy()  # I'm not sure why this needs to happen.
+            return obs
 
     def step(self, action, record=False):
         time_step = self.env.step(action)
@@ -88,10 +108,4 @@ above
         self.observations.append(copy.deepcopy(time_step.observation))
         self.ticks.append(self.env.physics.data.time)
         terminal = False
-        if self.observation_type == 'image':
-            # Check the following link for distractors.
-            # https://github.com/facebookresearch/deep_bisim4control/blob/main/dmc2gym/natural_imgsource.py
-
-            return cameras, time_step.reward, terminal
-        elif self.observation_type == 'position':
-            return np.concatenate(list(time_step.observation.values())), time_step.reward, terminal
+        return self._get_obs(), time_step.reward, terminal

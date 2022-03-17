@@ -12,6 +12,9 @@ class RandomAgent:
     def get_action(self, state):
         return self.random_state.uniform(self.actions.minimum, self.actions.maximum, self.actions.shape)
 
+    def learn(self, state, action, reward):
+        pass
+
 
 def main():
     N = 20
@@ -20,7 +23,7 @@ def main():
     alpha = 0.0003
     n_games = 300
     figure_file = 'plots/cartpole.png'
-    learn_iters = 0 # number of times we call learn function
+    learn_iters = 0  # number of times we call learn function
     avg_score = 0
     n_steps = 0
 
@@ -35,26 +38,25 @@ def main():
         observation_type='position',  # Maria - uncomment this line for easier and faster algorithm confirmation
     )
 
-    agent = Agent(n_actions = 2, batch_size = batch_size,
-                  alpha = alpha, n_epochs = n_epochs,
-                  input_dims = 6)
+    agent = Agent(n_actions=env.actions_count, batch_size=batch_size,
+                  alpha=alpha, n_epochs=n_epochs,
+                  input_dims=env.observation_shape)
 
     # number of actions: n_actions=env.action_space.n
     # input dims:  input_dims=env.observation_space.shape
     # best score = env.reward_range[0]
     # observation = env.reset()
 
-
-    best_score = env.reward_range[0] #min score for the environment
+    best_score = env.reward_range[0]  # min score for the environment
     score_history = []
 
     for i in range(n_games):
-        observation = env.reset() # could be state?
+        observation = env.reset()  # could be state?
         done = False
         score = 0
         while not done:
             action, prob, val = agent.choose_action(observation)
-            observation_, reward, done, info = env.step(action)
+            observation_, reward, done = env.step(action)
             n_steps += 1
             # score += reward
             agent.store_transition(observation, action, prob, val, reward, done)
@@ -74,13 +76,14 @@ def main():
     x = [i + 1 for i in range(len(score_history))]
     plot_learning_curve(x, score_history, figure_file)
 
-    #actions = env.env.action_spec() #action space
-    #agent = RandomAgent(actions)
-    #state = env.time_step
-    #for _ in range(50):
-        #action = agent.get_action(state)
-        #state, reward, terminal = env.step(action)
-        #print(f"Reward: {reward}")
+    # actions = env.env.action_spec() #action space
+    # agent = RandomAgent(actions)
+    # state = env.time_step
+    # for _ in range(50):
+    #     action = agent.get_action(state)
+    #     state, reward, terminal = env.step(action)
+    #     agent.learn(state, action, reward)
+    #     print(f"Reward: {reward}")
 
 
 main()
