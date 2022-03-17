@@ -4,5 +4,9 @@ numpy~=1.22.3
 scikit-video~=1.1.11
 tqdm~=4.63.0
 opencv-python~=4.5.5.64
+matplotlib~=3.5.1
+tensorflow~=2.8.0
+keras~=2.8.0
+tensorflow-probability==0.11.0
 gym~=0.23.1
 procgen~=0.10.7
