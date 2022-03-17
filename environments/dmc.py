@@ -107,5 +107,4 @@ above
         self.rewards.append(time_step.reward)
         self.observations.append(copy.deepcopy(time_step.observation))
         self.ticks.append(self.env.physics.data.time)
-        terminal = False
-        return self._get_obs(), time_step.reward, terminal
+        return self._get_obs(), time_step.reward, time_step.last()
