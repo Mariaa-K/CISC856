@@ -3,6 +3,8 @@ import numpy as np
 from agent import Agent
 from utils import plot_learning_curve
 
+import gym
+
 
 class RandomAgent:
     def __init__(self, action_space):
@@ -34,31 +36,35 @@ def main():
                  ]
     env = environments.DMCSimulation(
         domain='cartpole',
-        task='balance',
+        task='swingup',
         observation_type='position',  # Maria - uncomment this line for easier and faster algorithm confirmation
     )
 
-    agent = Agent(n_actions=env.actions_count, batch_size=batch_size,
+    env_tmp = gym.make('CartPole-v1')
+    agent = Agent(n_actions=env_tmp.action_space.n, batch_size=batch_size,
                   alpha=alpha, n_epochs=n_epochs,
-                  input_dims=env.observation_shape)
+                  input_dims=env_tmp.observation_space.shape)
+
+    #agent = Agent(n_actions=env.actions_count, batch_size=batch_size, alpha=alpha, n_epochs=n_epochs, input_dims=env.observation_shape)
 
     # number of actions: n_actions=env.action_space.n
     # input dims:  input_dims=env.observation_space.shape
     # best score = env.reward_range[0]
     # observation = env.reset()
 
-    best_score = env.reward_range[0]  # min score for the environment
+    best_score = env_tmp.reward_range[0]  # min score for the environment
     score_history = []
 
     for i in range(n_games):
-        observation = env.reset()  # could be state?
+        observation = env_tmp.reset()  # could be state?
         done = False
         score = 0
         while not done:
             action, prob, val = agent.choose_action(observation)
-            observation_, reward, done = env.step(action)
+            # remove info when using our env
+            observation_, reward, done, info = env_tmp.step(action)
             n_steps += 1
-            # score += reward
+            score += reward
             agent.store_transition(observation, action, prob, val, reward, done)
             if n_steps % N == 0:
                 agent.learn()
