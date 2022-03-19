@@ -2,9 +2,34 @@ import os
 import copy
 import glob
 import numpy as np
-from environments import natural_imgsource
+from environments.dmc2gym import natural_imgsource
 # Control Suite
 from dm_control import suite
+import matplotlib  # ; matplotlib.use("TkAgg")  # This should allow us to show videos in pycharm.
+import matplotlib.animation as animation
+import matplotlib.pyplot as plt
+
+
+def display_video(frames, framerate=30):
+    height, width, _ = frames[0].shape
+    dpi = 70
+    orig_backend = matplotlib.get_backend()
+    matplotlib.use('Agg')  # Switch to headless 'Agg' to inhibit figure rendering.
+    fig, ax = plt.subplots(1, 1, figsize=(width / dpi, height / dpi), dpi=dpi)
+    matplotlib.use(orig_backend)  # Switch back to the original backend.
+    ax.set_axis_off()
+    ax.set_aspect('equal')
+    ax.set_position([0, 0, 1, 1])
+    im = ax.imshow(frames[0])
+
+    def update(frame):
+        im.set_data(frame)
+        return [im]
+
+    interval = 1000 / framerate
+    anim = animation.FuncAnimation(fig=fig, func=update, frames=frames,
+                                   interval=interval, blit=True, repeat=False)
+    return anim.to_html5_video()
 
 
 class DMCSimulation:
@@ -94,7 +119,26 @@ above
             obs = obs.transpose(2, 0, 1).copy()  # I'm not sure why this needs to happen.
             return obs
 
+    def show_plots(self):
+        _, ax = plt.subplots(1 + len(self.time_step.observation), 1, sharex=True, figsize=(4, 8))
+        ax[0].plot(self.ticks, self.rewards)
+        ax[0].set_ylabel('reward')
+        ax[-1].set_xlabel('time')
+
+        for i, key in enumerate(self.time_step.observation):
+            data = np.asarray([self.observations[j][key] for j in range(len(self.observations))])
+            ax[i + 1].plot(self.ticks, data, label=f"{key}")
+            ax[i + 1].set_ylabel(key)
+            ax[i + 1].legend()
+
+        plt.show()
+
+    def video_output(self):
+        display_video(self.frames)
+
     def step(self, action, record=False):
+        action = action * 2 - 1
+
         time_step = self.env.step(action)
 
         cameras = [self.env.physics.render(
