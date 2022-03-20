@@ -1,6 +1,7 @@
 # need to: pip install procgen
 
 import gym  # must be version 0.19.0
+import procgen  # This seems to be required for Jeremy's computer.  I hope it works for you guys.
 
 
 class ProcgenEnv:
@@ -8,7 +9,7 @@ class ProcgenEnv:
     def __init__(self, env_name='coinrun', num_levels=200, start_level=0, distribution_mode='hard'):
 
         self.env_name = env_name
-        self.full_env_name = 'procgen:procgen-'+self.env_name+'-v0'
+        self.full_env_name = 'procgen-'+self.env_name+'-v0'
         self.num_levels = num_levels
         self.start_level = start_level
         self.distribution_mode = distribution_mode
@@ -35,4 +36,4 @@ class ProcgenEnv:
 
     @property
     def observation_space(self):
-        return self.observation_space
+        return self.env.observation_space
