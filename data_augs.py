@@ -1,5 +1,9 @@
-# This file was is a modified version of:
+# This file is a modified version of:
 # https://github.com/pokaxpoka/rad_procgen/blob/master/train_procgen/data_augs.py
+
+# This code uses the augmentations with tensorflow, so it shouldn't cause any issues.
+# Hopefully the augmentation algorithms won't require it.
+# https://github.com/pokaxpoka/rad_procgen/blob/master/train_procgen/runner.py
 
 import numpy as np
 import torch
@@ -276,7 +280,7 @@ class RandomConv(object):
     def print_parms(self):
         pass
 
-        
+
 class ColorJitter(nn.Module):
     """
     Color-Jitter Augmentation
@@ -333,7 +337,7 @@ class ColorJitter(nn.Module):
         if value[0] == value[1] == center:
             value = None
         return value
-    
+
     def adjust_contrast(self, x):
         """
             Args:
