@@ -17,6 +17,9 @@ class RandomAgent:
     def learn(self, state, action, reward):
         pass
 
+    def choose_action(self, state):
+        return self.get_action(state)
+
 
 def main():
     N = 20
@@ -34,35 +37,46 @@ def main():
                  ('walker', 'walk'),
                  ('cheetah', 'run')
                  ]
-    env = environments.DMCSimulation(
-        domain='cartpole',
-        task='swingup',
-        observation_type='position',  # Maria - uncomment this line for easier and faster algorithm confirmation
-    )
+    # env = environments.DMCSimulation(
+    #     domain='cartpole',
+    #     task='swingup',
+    #     observation_type='position',  # Maria - uncomment this line for easier and faster algorithm confirmation
+    # )
 
-    env_tmp = gym.make('CartPole-v1')
-    agent = Agent(n_actions=env_tmp.action_space.n, batch_size=batch_size,
+    # actions = env.env.action_spec()  # action space
+    # agent = RandomAgent(actions)
+    # state = env.time_step
+    # for _ in range(50):
+    #     action = agent.get_action(state)
+    #     state, reward, terminal, _ = env.step(action)
+    #     agent.learn(state, action, reward)
+    #     print(f"Reward: {reward}")
+
+    # env = gym.make('CartPole-v1')
+    env = environments.ProcgenEnv()
+    agent = Agent(n_actions=env.actions_count, batch_size=batch_size,
                   alpha=alpha, n_epochs=n_epochs,
-                  input_dims=env_tmp.observation_space.shape)
+                  input_dims=env.observation_space.shape)
 
-    #agent = Agent(n_actions=env.actions_count, batch_size=batch_size, alpha=alpha, n_epochs=n_epochs, input_dims=env.observation_shape)
+    # agent = Agent(n_actions=env.actions_count, batch_size=batch_size, alpha=alpha,
+    #               n_epochs=n_epochs, input_dims=env.observation_shape)
 
     # number of actions: n_actions=env.action_space.n
     # input dims:  input_dims=env.observation_space.shape
     # best score = env.reward_range[0]
     # observation = env.reset()
 
-    best_score = env_tmp.reward_range[0]  # min score for the environment
+    best_score = env.reward_range[0]  # min score for the environment
     score_history = []
 
     for i in range(n_games):
-        observation = env_tmp.reset()  # could be state?
+        observation = env.reset()  # could be state?
         done = False
         score = 0
         while not done:
             action, prob, val = agent.choose_action(observation)
             # remove info when using our env
-            observation_, reward, done, info = env_tmp.step(action)
+            observation_, reward, done, info = env.step(action)
             n_steps += 1
             score += reward
             agent.store_transition(observation, action, prob, val, reward, done)
@@ -72,6 +86,8 @@ def main():
             observation = observation_
         score_history.append(score)
         avg_score = np.mean(score_history[-100:])
+        # env.show_plots()
+        # env.video_output()
 
         if avg_score > best_score:
             best_score = avg_score
@@ -81,15 +97,6 @@ def main():
               'time_steps', n_steps, 'learning_steps', learn_iters)
     x = [i + 1 for i in range(len(score_history))]
     plot_learning_curve(x, score_history, figure_file)
-
-    # actions = env.env.action_spec() #action space
-    # agent = RandomAgent(actions)
-    # state = env.time_step
-    # for _ in range(50):
-    #     action = agent.get_action(state)
-    #     state, reward, terminal = env.step(action)
-    #     agent.learn(state, action, reward)
-    #     print(f"Reward: {reward}")
 
 
 main()
