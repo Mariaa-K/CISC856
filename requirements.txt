@@ -12,3 +12,4 @@ gym~=0.23.1
 procgen~=0.10.7
 scikit-image~=0.19.2
 pygame==2.1.2
+kornia~=0.6.3
