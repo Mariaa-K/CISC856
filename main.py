@@ -4,21 +4,7 @@ from agent import Agent
 from utils import plot_learning_curve
 
 import gym
-
-
-class RandomAgent:
-    def __init__(self, action_space):
-        self.actions = action_space
-        self.random_state = np.random.RandomState(42)
-
-    def get_action(self, state):
-        return self.random_state.uniform(self.actions.minimum, self.actions.maximum, self.actions.shape)
-
-    def learn(self, state, action, reward):
-        pass
-
-    def choose_action(self, state):
-        return self.get_action(state)
+import data_augs
 
 
 def main():
@@ -37,20 +23,21 @@ def main():
                  ('walker', 'walk'),
                  ('cheetah', 'run')
                  ]
+    aug_to_func = {
+        'crop': data_augs.Crop,
+        'random-conv': data_augs.RandomConv,
+        'grayscale': data_augs.Grayscale,
+        'flip': data_augs.Flip,
+        'rotate': data_augs.Rotate,
+        'cutout': data_augs.Cutout,
+        'cutout-color': data_augs.CutoutColor,
+        'color-jitter': data_augs.ColorJitter,
+    }
     # env = environments.DMCSimulation(
     #     domain='cartpole',
     #     task='swingup',
     #     observation_type='position',  # Maria - uncomment this line for easier and faster algorithm confirmation
     # )
-
-    # actions = env.env.action_spec()  # action space
-    # agent = RandomAgent(actions)
-    # state = env.time_step
-    # for _ in range(50):
-    #     action = agent.get_action(state)
-    #     state, reward, terminal, _ = env.step(action)
-    #     agent.learn(state, action, reward)
-    #     print(f"Reward: {reward}")
 
     # env = gym.make('CartPole-v1')
     env = environments.ProcgenEnv()
