@@ -40,6 +40,10 @@ class Agent:
         self.actor = keras.models.load_model(self.chkpt_dir + 'actor')
         self.critic = keras.models.load_model(self.chkpt_dir + 'critic')
 
+    @property
+    def trainable_variables(self):
+        return tf.concat([self.actor.trainable_variables, self.critic.trainable_variables])
+
     def choose_action(self, observation):
         state = tf.convert_to_tensor([observation])
 
@@ -54,6 +58,9 @@ class Agent:
         log_prob = log_prob.numpy()[0]
 
         return action, log_prob, value
+
+    def evaluate_actions(self, observations):  # -> (value, action_log_probs, dist_entropy, [rnn_hxs])
+        pass
 
     def learn(self):
         for _ in range(self.n_epochs):
