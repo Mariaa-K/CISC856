@@ -3,8 +3,8 @@ import tensorflow as tf
 
 import tensorflow.keras as keras
 from tensorflow.keras.optimizers import Adam
-#from tensorflow import keras
-#from keras.optimizers import Adam
+# from tensorflow import keras
+# from keras.optimizers import Adam
 
 import tensorflow_probability as tfp
 from memory import PPOMemory
