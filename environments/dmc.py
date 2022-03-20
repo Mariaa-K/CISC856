@@ -138,7 +138,7 @@ above
 
     def step(self, action, record=False):
         action = action * 2 - 1
-
+        action = 1.0 if action > 0 else -1.0
         time_step = self.env.step(action)
 
         cameras = [self.env.physics.render(
@@ -151,4 +151,4 @@ above
         self.rewards.append(time_step.reward)
         self.observations.append(copy.deepcopy(time_step.observation))
         self.ticks.append(self.env.physics.data.time)
-        return self._get_obs(), time_step.reward, time_step.last()
+        return self._get_obs(), time_step.reward, time_step.last(), None

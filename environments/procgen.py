@@ -12,13 +12,27 @@ class ProcgenEnv:
         self.num_levels = num_levels
         self.start_level = start_level
         self.distribution_mode = distribution_mode
+        self.reward_range = [0]
         
         self.env = gym.make(self.full_env_name, render_mode="human")
         self.obs = self.env.reset()
     
-    def step(self):
-
-        obs, rew, done, _ = self.env.step(self.env.action_space.sample())  # removed fourth output info
+    def step(self, action):
+        # self.env.action_space.sample()
+        obs, rew, done, info = self.env.step(action)  # removed fourth output info
         self.env.render()
-        
-        # pass obs, rew, done to Maria's code
+        self.obs = obs
+
+        return obs, rew, done, info
+
+    def reset(self):
+        self.obs = self.env.reset()
+        return self.obs
+
+    @property
+    def actions_count(self):
+        return self.env.action_space.n
+
+    @property
+    def observation_space(self):
+        return self.observation_space
