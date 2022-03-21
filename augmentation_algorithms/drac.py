@@ -90,7 +90,8 @@ class DrAC:
                                   )
                     grad = tape.gradients(total_loss, self.actor_critic.trainable_variables)
 
-                    # TODO: Perform gradient clipping
+                    grad = tf.clip_by_norm(grad, self.max_grad_norm)
+                    self.optimizer.apply_gradients(grad)
 
                     value_loss_epoch += tf.get_static_value(value_loss)
                     action_loss_epoch += tf.get_static_value(action_loss)
