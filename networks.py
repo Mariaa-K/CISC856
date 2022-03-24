@@ -1,5 +1,5 @@
 import tensorflow.keras as keras
-from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import Dense, Conv2D, ReLU
 # from tensorflow import keras
 # from keras.layers import Dense
 
@@ -32,3 +32,29 @@ class CriticNetwork(keras.Model):
         q = self.q(x)
 
         return q
+
+
+class BasicBlock(nn.Module):
+    """
+    Residual Network Block
+    """
+    def __init__(self, n_channels, stride=1):
+        super(BasicBlock, self).__init__()
+
+        self.conv1 = Conv2D(n_channels, kernel_size=3, strides=1, padding=(1,1))
+        self.relu = ReLU(inplace=True)
+        self.conv2 = Conv2D(n_channels, kernel_size=3, strides=1, padding=(1,1))
+        self.stride = stride
+
+        #self.train()
+
+    def call(self, x):
+        identity = x
+
+        out = self.relu(x)
+        out = self.conv1(out)
+        out = self.relu(out)
+        out = self.conv2(out)
+
+        out += identity
+        return out
