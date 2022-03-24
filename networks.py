@@ -1,14 +1,21 @@
 import tensorflow.keras as keras
 from tensorflow.keras.layers import Dense, Conv2D, ReLU, MaxPool2D, Flatten, GRU
 from tensorflow.keras import Sequential
+from tensorflow.keras import tanh
 from tensorflow import nn
 import tensorflow as tf
 
 # from tensorflow import keras
 # from keras.layers import Dense
 
+init_ = lambda m: init(m, nn.init.orthogonal_, lambda x: nn.init.
+                        constant_(x, 0))
+
 init_relu_ = lambda m: init(m, nn.init.orthogonal_, lambda x: nn.init.
                         constant_(x, 0), nn.init.calculate_gain('relu'))
+
+init_tanh_ = lambda m: init(m, nn.init.orthogonal_, lambda x: nn.init.
+                        constant_(x, 0), np.sqrt(2))
 
 
 def apply_init_(modules):
@@ -147,6 +154,47 @@ class NNBase(nn.Module):
 
         return x, hxs   
     
+
+class MLPBase(NNBase):
+    """
+    Multi-Layer Perceptron
+    """
+    def __init__(self, num_inputs, recurrent=False, hidden_size=64):
+        super(MLPBase, self).__init__(recurrent, num_inputs, hidden_size)
+
+        if recurrent:
+            num_inputs = hidden_size
+
+        self.actor = Sequential()
+        
+        self.actor.add(init_tanh_(Dense(hidden_size, activation=None)))
+        self.actor.add(tanh())
+        self.actor.add(init_tanh_(Dense(hidden_size, activation=None)))
+        self.actor.add(tanh())
+ 
+        self.critic = Sequential()
+        
+        self.critic.add(init_tanh_(Dense(hidden_size, activation=None)))
+        self.critic.add(tanh())
+        self.critic.add(init_tanh_(Dense(hidden_size, activation=None)))
+        self.critic.add(tanh())
+
+        #self.critic_linear = init_(nn.Linear(hidden_size, 1))
+        self.critic_linear = init_(nn.Linear(1, activation=None))
+
+        self.train()
+
+    def forward(self, inputs, rnn_hxs, masks):
+        x = inputs
+
+        if self.is_recurrent:
+            x, rnn_hxs = self._forward_gru(x, rnn_hxs, masks)
+
+        hidden_critic = self.critic(x)
+        hidden_actor = self.actor(x)
+
+        return self.critic_linear(hidden_critic), hidden_actor, rnn_hxs
+
 
 
 class BasicBlock(keras.Model):
