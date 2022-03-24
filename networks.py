@@ -34,7 +34,7 @@ class CriticNetwork(keras.Model):
         return q
 
 
-class BasicBlock(nn.Module):
+class BasicBlock(keras.Model):
     """
     Residual Network Block
     """
