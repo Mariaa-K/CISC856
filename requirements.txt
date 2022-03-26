@@ -5,11 +5,11 @@ scikit-video~=1.1.11
 tqdm~=4.63.0
 opencv-python~=4.5.5.64
 matplotlib~=3.5.1
-tensorflow~=2.8.0
-keras~=2.8.0
-tensorflow-probability==0.11.0
+tensorflow==2.8.0
+keras==2.8.0
+tensorflow-probability==0.16.0
 gym~=0.23.1
-procgen~=0.10.7
+procgen==0.10.7
 scikit-image~=0.19.2
 pygame==2.1.2
 kornia~=0.6.3

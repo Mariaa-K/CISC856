@@ -1,6 +1,6 @@
 import environments
 import numpy as np
-from agent import Agent
+from agent import Agent, Policy
 from utils import plot_learning_curve
 
 import gym
@@ -45,6 +45,8 @@ def main():
                   alpha=alpha, n_epochs=n_epochs,
                   input_dims=env.observation_space.shape)
 
+    agent = Policy(env.observation_space.shape, num_actions=env.actions_count,
+                   batch_size=batch_size, alpha=alpha, n_epochs=n_epochs)
     # agent = Agent(n_actions=env.actions_count, batch_size=batch_size, alpha=alpha,
     #               n_epochs=n_epochs, input_dims=env.observation_shape)
 
@@ -62,6 +64,7 @@ def main():
         score = 0
         while not done:
             action, prob, val = agent.choose_action(observation)
+            print(action)
             # remove info when using our env
             observation_, reward, done, info = env.step(action)
             n_steps += 1

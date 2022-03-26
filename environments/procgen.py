@@ -6,7 +6,7 @@ import procgen  # This seems to be required for Jeremy's computer.  I hope it wo
 
 class ProcgenEnv:
 
-    def __init__(self, env_name='coinrun', num_levels=200, start_level=0, distribution_mode='hard'):
+    def __init__(self, env_name='coinrun', num_levels=200, start_level=0, distribution_mode='easy'):
 
         self.env_name = env_name
         self.full_env_name = 'procgen-'+self.env_name+'-v0'
@@ -16,19 +16,21 @@ class ProcgenEnv:
         self.reward_range = [0]
         
         self.env = gym.make(self.full_env_name, render_mode="human")
-        self.obs = self.env.reset()
+        self.obs = self.env.reset() / 255.
     
     def step(self, action):
         # self.env.action_space.sample()
+        # if isinstance(action, tuple):
+        #     action = (action[0],)
         obs, rew, done, info = self.env.step(action)  # removed fourth output info
         self.env.render()
-        self.obs = obs
+        self.obs = obs / 255.
 
         return obs, rew, done, info
 
     def reset(self):
         self.obs = self.env.reset()
-        return self.obs
+        return self.obs / 255.
 
     @property
     def actions_count(self):
