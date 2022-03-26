@@ -1,19 +1,15 @@
+import config
 import environments
 import numpy as np
 from agent import Agent, Policy
 from utils import plot_learning_curve
-
+import time
 import gym
 import data_augs
 
 
-def main():
-    N = 20
-    batch_size = 5
-    n_epochs = 4
-    alpha = 0.0003
-    n_games = 300
-    figure_file = 'plots/cartpole.png'
+def main(training_steps=256, batch_size=5, n_epochs=4, alpha=0.0003, n_games=5000):
+    plots_directory = 'plots/'
     learn_iters = 0  # number of times we call learn function
     avg_score = 0
     n_steps = 0
@@ -38,9 +34,9 @@ def main():
     #     task='swingup',
     #     observation_type='position',  # Maria - uncomment this line for easier and faster algorithm confirmation
     # )
-
+    env_name = 'starpilot'
     # env = gym.make('CartPole-v1')
-    env = environments.ProcgenEnv()
+    env = environments.ProcgenEnv(env_name)
     agent = Agent(n_actions=env.actions_count, batch_size=batch_size,
                   alpha=alpha, n_epochs=n_epochs,
                   input_dims=env.observation_space.shape)
@@ -64,13 +60,12 @@ def main():
         score = 0
         while not done:
             action, prob, val = agent.choose_action(observation)
-            print(action)
             # remove info when using our env
             observation_, reward, done, info = env.step(action)
             n_steps += 1
             score += reward
             agent.store_transition(observation, action, prob, val, reward, done)
-            if n_steps % N == 0:
+            if n_steps % training_steps == 0:
                 agent.learn()
                 learn_iters += 1
             observation = observation_
@@ -86,7 +81,7 @@ def main():
         print('episode', i, 'score %.1f' % score, 'avg score %.1f' % avg_score,
               'time_steps', n_steps, 'learning_steps', learn_iters)
     x = [i + 1 for i in range(len(score_history))]
-    plot_learning_curve(x, score_history, figure_file)
+    plot_learning_curve(x, score_history, f"{plots_directory}{env_name}{time.time()}.png")
 
 
 main()
