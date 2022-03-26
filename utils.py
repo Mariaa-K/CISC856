@@ -1,8 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 
 
 def plot_learning_curve(x, scores, figure_file):
+    path = os.path.split(figure_file)
+    os.makedirs(os.path.join(*path[:-1]))
     running_avg = np.zeros(len(scores))
     for i in range(len(running_avg)):
         running_avg[i] = np.mean(scores[max(0, i - 100):(i + 1)])
