@@ -16,17 +16,24 @@ class DrAC:
                  aug_func=None,
                  aug_coef=0.1,
                  env_name=None):
+
         self.actor_critic = actor_critic
+
         self.clip_param = clip_param
         self.ppo_epoch = ppo_epoch
         self.num_mini_batch = num_mini_batch
+
         self.value_loss_coef = value_loss_coef
         self.entropy_coef = entropy_coef
+
         self.max_grad_norm = max_grad_norm
+
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=lr, epsilon=eps)
+
         self.aug_id = aug_id
         self.aug_func = aug_func
         self.aug_coef = aug_coef
+
         self.env_name = env_name
 
     def update(self, rollouts, returns, predicted_value, recurrent_generator, feed_forward_generator):
@@ -62,9 +69,9 @@ class DrAC:
                                              ) * adv_targ
                     action_loss = -tf.math.reduce_mean(tf.minimum(surr1, surr2))
 
-                    value_pred_clipped = tf.clip_by_value(value_preds_batch + (values - value_preds_batch),
-                                                          -self.clip_param,
-                                                          self.clip_param)
+                    value_pred_clipped = value_preds_batch + tf.clip_by_value(values - value_preds_batch,
+                                                                              -self.clip_param,
+                                                                              self.clip_param)
                     value_losses = (values - return_batch) ** 2
                     value_losses_clipped = (value_pred_clipped - return_batch) ** 2
                     value_loss = 0.5 * tf.math.reduce_mean(tf.maximum(value_losses, value_losses_clipped))
