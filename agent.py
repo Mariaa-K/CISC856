@@ -3,6 +3,7 @@ import tensorflow as tf
 
 import tensorflow.keras as keras
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.initializers import Orthogonal
 # from tensorflow import keras
 # from keras.optimizers import Adam
 
@@ -23,7 +24,7 @@ class Policy(keras.Model):
         self.chkpt_dir = chkpt_dir
 
         self.base = ResNetBase(observation_shape[0])
-        self.linear = keras.layers.Dense(num_actions, activation='softmax')
+        self.linear = keras.layers.Dense(num_actions, kernel_initializer=Orthogonal(gain=0.01))
         self.memory = PPOMemory(batch_size)
         self.compile(optimizer=Adam(learning_rate=alpha))
 

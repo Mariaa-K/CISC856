@@ -49,7 +49,6 @@ class CriticNetwork(keras.Model):
 
         return q
 
-
     
 class NNBase(keras.Model):
     """
@@ -186,9 +185,9 @@ class BasicBlock(keras.Model):
     def __init__(self, n_channels, stride=1):
         super(BasicBlock, self).__init__()
 
-        self.conv1 = Conv2D(n_channels, kernel_size=3, strides=1, padding='same', activation='relu')
-        # self.relu = ReLU()
-        self.conv2 = Conv2D(n_channels, kernel_size=3, strides=1, padding='same', activation='relu')
+        self.conv1 = Conv2D(n_channels, kernel_size=3, strides=1, padding='same')  # , activation='relu')
+        self.relu = ReLU()
+        self.conv2 = Conv2D(n_channels, kernel_size=3, strides=1, padding='same')  # , activation='relu')
         # self.relu2 = ReLU()
         # self.stride = stride
 
@@ -199,7 +198,7 @@ class BasicBlock(keras.Model):
 
         # out = self.relu(x)
         out = self.conv1(x)
-        # out = self.relu(out)
+        out = self.relu(out)
         out = self.conv2(out)
 
         out += identity

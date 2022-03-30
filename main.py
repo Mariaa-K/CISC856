@@ -8,7 +8,7 @@ import gym
 import data_augs
 
 
-def main(training_steps=256, batch_size=5, n_epochs=4, alpha=0.0003, n_games=5000):
+def main(training_steps=256, batch_size=8, n_epochs=4, alpha=0.0005, n_games=5000):
     plots_directory = 'plots/'
     learn_iters = 0  # number of times we call learn function
     avg_score = 0
