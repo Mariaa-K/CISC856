@@ -6,6 +6,7 @@ from utils import plot_learning_curve
 import time
 import gym
 import data_augs
+from environments.gymwrap import gymWrapper
 
 
 def main(training_steps=256, batch_size=8, n_epochs=4, alpha=0.0005, n_games=5000):
@@ -34,15 +35,15 @@ def main(training_steps=256, batch_size=8, n_epochs=4, alpha=0.0005, n_games=500
     #     task='swingup',
     #     observation_type='position',  # Maria - uncomment this line for easier and faster algorithm confirmation
     # )
-    env_name = 'starpilot'
-    # env = gym.make('CartPole-v1')
-    env = environments.ProcgenEnv(env_name)
-    agent = Agent(n_actions=env.actions_count, batch_size=batch_size,
+    env_name = 'CartPole-v1'
+    env = gymWrapper(env_name)
+    # env = environments.ProcgenEnv(env_name)
+    agent = Agent(observation_space=env.observation_space, n_actions=2, batch_size=batch_size,
                   alpha=alpha, n_epochs=n_epochs,
                   input_dims=env.observation_space.shape)
 
-    agent = Policy(env.observation_space.shape, num_actions=env.actions_count,
-                   batch_size=batch_size, alpha=alpha, n_epochs=n_epochs)
+    # agent = Policy(env.observation_space.shape, num_actions=env.actions_count,
+    #                batch_size=batch_size, alpha=alpha, n_epochs=n_epochs)
     # agent = Agent(n_actions=env.actions_count, batch_size=batch_size, alpha=alpha,
     #               n_epochs=n_epochs, input_dims=env.observation_shape)
 

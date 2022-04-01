@@ -10,6 +10,7 @@ from tensorflow.keras.initializers import Orthogonal
 import tensorflow_probability as tfp
 from memory import PPOMemory
 from networks import ActorNetwork, CriticNetwork, ResNetBase
+from impala import ImpalaCNN
 
 
 class Policy(keras.Model):
@@ -154,7 +155,7 @@ class Policy(keras.Model):
 
 
 class Agent:
-    def __init__(self, n_actions, input_dims, gamma=0.99, alpha=0.0003,
+    def __init__(self, observation_space, n_actions, input_dims, gamma=0.99, alpha=0.0003,
                  gae_lambda=0.95, policy_clip=0.2, batch_size=64,
                  n_epochs=10, chkpt_dir='models/'):
         self.gamma = gamma
@@ -163,9 +164,10 @@ class Agent:
         self.gae_lambda = gae_lambda
         self.chkpt_dir = chkpt_dir
 
-        self.actor = ActorNetwork(n_actions)
+        self.base = ImpalaCNN(observation_space, n_actions, n_actions)
+        self.actor = self.base
         self.actor.compile(optimizer=Adam(learning_rate=alpha))
-        self.critic = CriticNetwork()
+        self.critic = self.base
         self.critic.compile(optimizer=Adam(learning_rate=alpha))
         self.memory = PPOMemory(batch_size)
 
@@ -189,11 +191,11 @@ class Agent:
     def choose_action(self, observation):
         state = tf.convert_to_tensor([observation])
 
-        probs = self.actor(state)
-        dist = tfp.distributions.Categorical(probs)
+        logits = self.actor(state)
+        dist = tfp.distributions.Categorical(logits)
         action = dist.sample()
         log_prob = dist.log_prob(action)
-        value = self.critic(state)
+        value = self.critic.value_function()
 
         action = action.numpy()[0]
         value = value.numpy()[0]
@@ -228,11 +230,11 @@ class Agent:
                     old_probs = tf.convert_to_tensor(old_prob_arr[batch])
                     actions = tf.convert_to_tensor(action_arr[batch])
 
-                    probs = self.actor(states)
-                    dist = tfp.distributions.Categorical(probs)
+                    logits = self.actor(states)
+                    dist = tfp.distributions.Categorical(logits)
                     new_probs = dist.log_prob(actions)
 
-                    critic_value = self.critic(states)
+                    critic_value = self.critic.value_function()
 
                     critic_value = tf.squeeze(critic_value, 1)
 
@@ -251,13 +253,11 @@ class Agent:
                     #                                  returns-critic_value, 2))
                     critic_loss = keras.losses.MSE(critic_value, returns)
 
-                actor_params = self.actor.trainable_variables
-                actor_grads = tape.gradient(actor_loss, actor_params)
-                critic_params = self.critic.trainable_variables
-                critic_grads = tape.gradient(critic_loss, critic_params)
-                self.actor.optimizer.apply_gradients(
-                        zip(actor_grads, actor_params))
-                self.critic.optimizer.apply_gradients(
-                        zip(critic_grads, critic_params))
+                    total_loss = (critic_loss * 0.5 +
+                                  actor_loss
+                                  )
+                params = self.base.trainable_variables
+                grads = tape.gradient(total_loss, params)
+                self.base.optimizer.apply_gradients(zip(grads, params))
 
         self.memory.clear_memory()
