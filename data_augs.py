@@ -12,6 +12,7 @@ import numbers
 import random
 import time
 import kornia 
+import tensorflow as tf
 
 
 class Grayscale(object):
@@ -193,12 +194,12 @@ class Rotate(object):
         
     def do_augmentation(self, imgs):
         device = imgs.device
-        imgs = imgs.cpu().numpy()
+        imgs = imgs.numpy()
         tot_imgs = imgs
         for k in range(3):
-            rot_imgs = np.ascontiguousarray(np.rot90(imgs, k=(k+1), axes=(2, 3)))
+            rot_imgs = np.ascontiguousarray(np.rot90(imgs, k=(k+1), axes=(1, 2)))
             tot_imgs = np.concatenate((tot_imgs, rot_imgs), 0)
-        images = torch.tensor(tot_imgs[self.random_inds], device=device)
+        images = tf.convert_to_tensor(tot_imgs[self.random_inds])
         return images
     
     def change_randomization_params(self, index_):

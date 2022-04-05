@@ -7,9 +7,10 @@ import time
 import gym
 import data_augs
 from environments.gymwrap import gymWrapper
+from augmentation_algorithms.drac import DrAC
 
 
-def main(training_steps=256, batch_size=8, n_epochs=4, alpha=0.0005, n_games=5000):
+def main(training_steps=256, batch_size=8, n_epochs=4, alpha=0.0005, n_games=500):
     plots_directory = 'plots/'
     learn_iters = 0  # number of times we call learn function
     avg_score = 0
@@ -42,6 +43,9 @@ def main(training_steps=256, batch_size=8, n_epochs=4, alpha=0.0005, n_games=500
                   alpha=alpha, n_epochs=n_epochs,
                   input_dims=env.observation_space.shape)
 
+    # agent = DrAC(agent, clip_param=0.2, ppo_epoch=n_epochs, num_mini_batch=8, value_loss_coef=0.5, entropy_coef=0.01, lr=alpha, eps=1e-5, max_grad_norm=0.5, 
+    # aug_id=data_augs.identity, aug_func=aug_to_func['rotate'](batch_size=batch_size))
+
     # agent = Policy(env.observation_space.shape, num_actions=env.actions_count,
     #                batch_size=batch_size, alpha=alpha, n_epochs=n_epochs)
     # agent = Agent(n_actions=env.actions_count, batch_size=batch_size, alpha=alpha,
@@ -60,12 +64,12 @@ def main(training_steps=256, batch_size=8, n_epochs=4, alpha=0.0005, n_games=500
         done = False
         score = 0
         while not done:
-            action, prob, val = agent.choose_action(observation)
+            action, prob, val = agent.choose_action(observation=observation)
             # remove info when using our env
             observation_, reward, done, info = env.step(action)
             n_steps += 1
             score += reward
-            agent.store_transition(observation, action, prob, val, reward, done)
+            agent.store_transition(state=observation, action=action, probs=prob, vals=val, reward=reward, done=done)
             if n_steps % training_steps == 0:
                 agent.learn()
                 learn_iters += 1

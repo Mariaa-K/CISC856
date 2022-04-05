@@ -157,14 +157,14 @@ class Policy(keras.Model):
 class Agent:
     def __init__(self, observation_space, n_actions, input_dims, gamma=0.99, alpha=0.0003,
                  gae_lambda=0.95, policy_clip=0.2, batch_size=64,
-                 n_epochs=10, chkpt_dir='models/'):
+                 n_epochs=10, chkpt_dir='models/', recurrent=False):
         self.gamma = gamma
         self.policy_clip = policy_clip
         self.n_epochs = n_epochs
         self.gae_lambda = gae_lambda
         self.chkpt_dir = chkpt_dir
 
-        self.base = ImpalaCNN(observation_space, n_actions, n_actions)
+        self.base = ImpalaCNN(observation_space, n_actions, n_actions, recurrent=recurrent)
         self.actor = self.base
         self.actor.compile(optimizer=Adam(learning_rate=alpha))
         self.critic = self.base
@@ -176,22 +176,24 @@ class Agent:
 
     def save_models(self):
         print('... saving models ...')
-        self.actor.save(self.chkpt_dir + 'actor')
-        self.critic.save(self.chkpt_dir + 'critic')
+        # self.actor.save(self.chkpt_dir + 'actor')
+        # self.critic.save(self.chkpt_dir + 'critic')
 
     def load_models(self):
         print('... loading models ...')
-        self.actor = keras.models.load_model(self.chkpt_dir + 'actor')
-        self.critic = keras.models.load_model(self.chkpt_dir + 'critic')
+        # self.actor = keras.models.load_model(self.chkpt_dir + 'actor')
+        # self.critic = keras.models.load_model(self.chkpt_dir + 'critic')
 
     @property
     def trainable_variables(self):
-        return tf.concat([self.actor.trainable_variables, self.critic.trainable_variables])
+        return self.base.trainable_variables
 
-    def choose_action(self, observation):
-        state = tf.convert_to_tensor([observation])
-
-        logits = self.actor(state)
+    def choose_action(self, observation, rnn_hxs=None, masks=None):
+        if observation.ndim < 4:
+            state = tf.convert_to_tensor([observation])
+        else:
+            state = tf.convert_to_tensor(observation)
+        value, logits, rnn_hxs = self.actor(state, rnn_hxs, masks)
         dist = tfp.distributions.Categorical(logits)
         action = dist.sample()
         log_prob = dist.log_prob(action)
@@ -203,8 +205,18 @@ class Agent:
 
         return action, log_prob, value
 
-    def evaluate_actions(self, observations):  # -> (value, action_log_probs, dist_entropy, [rnn_hxs])
-        pass
+    def evaluate_actions(self, inputs, rnn_hxs, masks, action):  # -> (value, action_log_probs, dist_entropy, [rnn_hxs])
+        
+        state = tf.convert_to_tensor(inputs)
+
+        value, logits, rnn_hxs = self.actor(state, rnn_hxs, masks)
+        dist = tfp.distributions.Categorical(logits)
+        action = dist.sample()
+        log_prob = dist.log_prob(action)
+        value = self.critic.value_function()
+        dist_entropy = tf.math.reduce_mean(dist.entropy())
+
+        return value, log_prob, dist_entropy, rnn_hxs
 
     def learn(self):
         for _ in range(self.n_epochs):
@@ -229,8 +241,10 @@ class Agent:
                     states = tf.convert_to_tensor(state_arr[batch])
                     old_probs = tf.convert_to_tensor(old_prob_arr[batch])
                     actions = tf.convert_to_tensor(action_arr[batch])
+                    rnn_hxs = None
+                    masks = None
 
-                    logits = self.actor(states)
+                    value, logits, rnn_hxs = self.actor(states, rnn_hxs, masks)
                     dist = tfp.distributions.Categorical(logits)
                     new_probs = dist.log_prob(actions)
 

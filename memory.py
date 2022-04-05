@@ -9,31 +9,44 @@ class PPOMemory:
         self.actions = []
         self.rewards = []
         self.dones = []
+        self.rnn_hxs = []
+        self.masks = []
 
         self.batch_size = batch_size
 
-    def generate_batches(self):
+    def generate_batches(self, recurrent=False):
         n_states = len(self.states)
         batch_start = np.arange(0, n_states, self.batch_size)
         indices = np.arange(n_states, dtype=np.int64)
         np.random.shuffle(indices)
         batches = [indices[i:i+self.batch_size] for i in batch_start]
-
+        if not recurrent:
+            return np.array(self.states),\
+                np.array(self.actions),\
+                np.array(self.probs),\
+                np.array(self.vals),\
+                np.array(self.rewards),\
+                np.array(self.dones),\
+                batches
         return np.array(self.states),\
             np.array(self.actions),\
             np.array(self.probs),\
             np.array(self.vals),\
             np.array(self.rewards),\
             np.array(self.dones),\
+            np.array(self.rnn_hxs),\
+            np.array(self.masks),\
             batches
 
-    def store_memory(self, state, action, probs, vals, reward, done):
+    def store_memory(self, state, action, probs, vals, reward, done, rnn_hxs=None, masks=None):
         self.states.append(state)
         self.actions.append(action)
         self.probs.append(probs)
         self.vals.append(vals)
         self.rewards.append(reward)
         self.dones.append(done)
+        self.rnn_hxs.append(rnn_hxs)
+        self.masks.append(masks)
 
     def clear_memory(self):
         self.states = []
@@ -42,3 +55,5 @@ class PPOMemory:
         self.rewards = []
         self.dones = []
         self.vals = []
+        self.rnn_hxs = []
+        self.masks = []
