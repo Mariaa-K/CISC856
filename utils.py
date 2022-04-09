@@ -1,7 +1,32 @@
+import matplotlib
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+import matplotlib
 import os
 import csv
+
+
+def display_video(frames, framerate=30):
+    height, width, _ = frames[0].shape
+    dpi = 70
+    orig_backend = matplotlib.get_backend()
+    matplotlib.use('Agg')
+    fig, ax = plt.subplots(1, 1, figsize=(width/dpi, height/dpi), dpi=dpi)
+    matplotlib.use(orig_backend)
+    ax.set_axis_off()
+    ax.set_aspect('equal')
+    ax.set_position([0, 0, 1, 1])
+    im = ax.imshow(frames[0])
+
+    def update(frame):
+        im.set_data(frame)
+        return [im]
+
+    interval = 1000/framerate
+    anim = animation.FuncAnimation(fig=fig, func=update, frames=frames, interval=interval, blit=True, repeat=False)
+    return anim.to_html5_video()
+    pass
 
 
 def plot_learning_curve(x, scores, figure_file):
@@ -13,6 +38,6 @@ def plot_learning_curve(x, scores, figure_file):
     plt.plot(x, running_avg)
     plt.title('Running average of previous 100 scores')
     plt.savefig(figure_file)
-    file = open(f"{figure_file[:-3]}csv", "w+")
-    data_backup = csv.writer(file)
-    data_backup.writerows(scores)
+    with open(f"{figure_file[:-3]}csv", "w+") as file:
+        data_backup = csv.writer(file)
+        data_backup.writerow(scores)
