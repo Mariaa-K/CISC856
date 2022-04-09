@@ -13,6 +13,7 @@ import random
 import time
 import kornia 
 import tensorflow as tf
+import cv2
 
 
 class Grayscale(object):
@@ -25,13 +26,14 @@ class Grayscale(object):
                  **_kwargs):
         
         self.batch_size = batch_size
-        self.transform = kornia.color.gray.RgbToGrayscale()
         
     def do_augmentation(self, x):
-        x_copy = x.clone()
-        x_copy = self.transform(x_copy)
-        x_copy = x_copy.repeat([1, 3, 1, 1])
-        return x_copy
+        x_copy = x.numpy()
+        x_copy = [cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) for img in x_copy]
+        x_copy = [cv2.cvtColor(img, cv2.COLOR_GRAY2BGR) for img in x_copy]
+        # x_copy = self.transform(x_copy)
+        # x_copy = x_copy.repeat([1, 3, 1, 1])
+        return tf.convert_to_tensor(x_copy)
 
     def change_randomization_params(self, index_):
         pass
@@ -66,14 +68,15 @@ class Cutout(object):
         
     def do_augmentation(self, imgs):
         n, c, h, w = imgs.shape
-        cutouts = torch.empty((n, c, h, w), dtype=imgs.dtype, device=imgs.device)
+        # cutouts = torch.empty((n, c, h, w), dtype=imgs.dtype, device=imgs.device)
+        cutouts = np.zeros((n, c, h, w))
         for i, (img, w11, h11) in enumerate(zip(imgs, self.w1, self.h1)):
-            cut_img = img.clone()
+            cut_img = img.numpy()
             cut_img[:, 
                     self.pivot_h+h11:self.pivot_h+h11+h11, 
                     self.pivot_w+w11:self.pivot_w+w11+w11] = 0
             cutouts[i] = cut_img
-        return cutouts
+        return tf.convert_to_tensor(cutouts)
     
     def change_randomization_params(self, index_):
         self.w1[index_] = np.random.randint(self.box_min, self.box_max)
@@ -113,8 +116,8 @@ class CutoutColor(object):
         self.obs_dtype = obs_dtype
         
     def do_augmentation(self, imgs):
-        device = imgs.device
-        imgs = imgs.cpu().numpy()
+        # device = imgs.device
+        imgs = imgs.numpy()
         n, c, h, w = imgs.shape
 
         cutouts = np.empty((n, c, h, w), dtype=imgs.dtype)
@@ -125,7 +128,7 @@ class CutoutColor(object):
                           (1,) + cut_img[:, self.pivot_h+h11:self.pivot_h+h11+h11,
                           self.pivot_w+w11:self.pivot_w+w11+w11].shape[1:])
             cutouts[i] = cut_img
-        cutouts = torch.tensor(cutouts, device=device)
+        cutouts = tf.convert_to_tensor(cutouts)
         return cutouts
         
     def change_randomization_params(self, index_):
@@ -160,11 +163,11 @@ class Flip(object):
                                             p=[self.p_flip, 1 - self.p_flip])
         
     def do_augmentation(self, images):
-        device = images.device
-        images = images.cpu().numpy()
+        # device = images.device
+        images = images.numpy()
         if self.random_inds.sum() > 0:
             images[self.random_inds] = np.flip(images[self.random_inds], 2)
-        images = torch.tensor(images, device=device)
+        images = tf.convert_to_tensor(images)
         return images
     
     def change_randomization_params(self, index_):
@@ -193,7 +196,7 @@ class Rotate(object):
         self.random_inds = np.random.randint(4, size=batch_size) * batch_size + np.arange(batch_size)
         
     def do_augmentation(self, imgs):
-        device = imgs.device
+        # device = imgs.device
         imgs = imgs.numpy()
         tot_imgs = imgs
         for k in range(3):
@@ -221,21 +224,40 @@ class Crop(object):
                  batch_size, 
                  *_args, 
                  **_kwargs):
-        self.batch_size = batch_size 
+
+        self.width = 64
+        self.height = 64
+        self.padding_length = 12
+        self.batch_size = batch_size
+        self.w1 = np.random.randint(0, self.width + self.padding_length, batch_size)
+        self.h1 = np.random.randint(0, self.height + self.padding_length, batch_size)
 
     def do_augmentation(self, x):
-        aug_trans = nn.Sequential(nn.ReplicationPad2d(12),
-                                  kornia.augmentation.RandomCrop((64, 64)))
-        return aug_trans(x)
+        # x = [np.pad(img,
+        #             ((self.padding_length, self.padding_length), (self.padding_length, self.padding_length)),
+        #             'edge') for img in x]
+        crops = np.zeros(x.shape)
+        for i, (img, w11, h11) in enumerate(zip(x, self.w1, self.h1)):
+            x = img.numpy()
+            x = np.pad(x,
+                       ((self.padding_length, self.padding_length), (self.padding_length, self.padding_length)),
+                       'edge')
+            crop = x[w11: w11+self.padding_length,
+                     h11: h11+self.padding_length]
+            crops[i] = crop
+        return tf.convert_to_tensor(crops)
 
     def change_randomization_params(self, index_):
-        pass
+        self.w1[index_] = np.random.randint(0, self.width + self.padding_length)
+        self.h1[index_] = np.random.randint(0, self.height + self.padding_length)
 
     def change_randomization_params_all(self):
-        pass
+        self.w1 = np.random.randint(0, self.width + self.padding_length, self.batch_size)
+        self.h1 = np.random.randint(0, self.height + self.padding_length, self.batch_size)
 
     def print_parms(self):
-        pass
+        print(self.w1)
+        print(self.h1)
 
 
 class RandomConv(object):
@@ -525,4 +547,21 @@ def identity(x):
     No Augmentation
     """
     return x
+
+
+class Identity:
+    def __init__(self):
+        pass
+
+    def do_augmentation(self, x):
+        return x
+
+    def change_randomization_params(self, index_):
+        pass
+
+    def change_randomization_params_all(self):
+        pass
+
+    def print_params(self):
+        pass
 
