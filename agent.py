@@ -154,10 +154,11 @@ class Policy(keras.Model):
         self.memory.clear_memory()
 
 
-class Agent:
+class Agent(keras.Model):
     def __init__(self, observation_space, n_actions, input_dims, gamma=0.99, alpha=0.0003,
                  gae_lambda=0.95, policy_clip=0.2, batch_size=64,
                  n_epochs=10, chkpt_dir='models/', recurrent=False):
+        super(Agent, self).__init__()
         self.gamma = gamma
         self.policy_clip = policy_clip
         self.n_epochs = n_epochs
@@ -165,6 +166,7 @@ class Agent:
         self.chkpt_dir = chkpt_dir
 
         self.base = ImpalaCNN(observation_space, n_actions, n_actions, recurrent=recurrent)
+        self.linear = keras.layers.Dense(n_actions, kernel_initializer=Orthogonal(gain=0.01))
         self.actor = self.base
         self.actor.compile(optimizer=Adam(learning_rate=alpha))
         self.critic = self.base
@@ -186,7 +188,7 @@ class Agent:
 
     @property
     def trainable_variables(self):
-        return self.base.trainable_variables
+        return self.base.trainable_variables + self.linear.trainable_variables
 
     def choose_action(self, observation, rnn_hxs=None, masks=None):
         if observation.ndim < 4:
@@ -205,13 +207,30 @@ class Agent:
 
         return action, log_prob, value
 
+    def call(self, observation, rnn_hxs=None, masks=None):
+        if observation.ndim < 4:
+            state = tf.convert_to_tensor([observation])
+        else:
+            state = tf.convert_to_tensor(observation)
+        value, logits, rnn_hxs = self.actor(state, rnn_hxs, masks)
+        dist = tfp.distributions.Categorical(logits)
+        action = dist.sample()
+        log_prob = dist.log_prob(action)
+        value = self.critic.value_function()
+
+        action = action.numpy()[0]
+        value = value.numpy()[0]
+        log_prob = log_prob.numpy()[0]
+        return action, log_prob, value
+
     def evaluate_actions(self, inputs, rnn_hxs, masks, action):  # -> (value, action_log_probs, dist_entropy, [rnn_hxs])
         
         state = tf.convert_to_tensor(inputs)
 
         value, logits, rnn_hxs = self.actor(state, rnn_hxs, masks)
-        dist = tfp.distributions.Categorical(logits)
-        action = dist.sample()
+        action_probs = self.linear(logits)
+        dist = tfp.distributions.Categorical(action_probs)
+        # action = dist.sample()
         log_prob = dist.log_prob(action)
         value = self.critic.value_function()
         dist_entropy = tf.math.reduce_mean(dist.entropy())

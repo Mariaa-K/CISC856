@@ -2,7 +2,7 @@ import config
 import environments
 import numpy as np
 from agent import Agent, Policy
-from utils import plot_learning_curve
+from utils import plot_learning_curve, display_video
 import time
 import gym
 import data_augs
@@ -30,6 +30,7 @@ def main(training_steps=256, batch_size=8, n_epochs=4, alpha=0.0005, n_games=500
         'cutout': data_augs.Cutout,
         'cutout-color': data_augs.CutoutColor,
         'color-jitter': data_augs.ColorJitter,
+        'identity': data_augs.Identity,
     }
     # env = environments.DMCSimulation(
     #     domain='cartpole',
@@ -37,9 +38,9 @@ def main(training_steps=256, batch_size=8, n_epochs=4, alpha=0.0005, n_games=500
     #     observation_type='position',  # Maria - uncomment this line for easier and faster algorithm confirmation
     # )
     env_name = 'CartPole-v1'
-    env = gymWrapper(env_name)
+    env = gymWrapper(env_name, img_source='color')
     # env = environments.ProcgenEnv(env_name)
-    agent = Agent(observation_space=env.observation_space, n_actions=2, batch_size=batch_size,
+    agent = Agent(observation_space=env.observation_space, n_actions=env.actions_count, batch_size=batch_size,
                   alpha=alpha, n_epochs=n_epochs,
                   input_dims=env.observation_space.shape)
 
@@ -59,12 +60,14 @@ def main(training_steps=256, batch_size=8, n_epochs=4, alpha=0.0005, n_games=500
     best_score = env.reward_range[0]  # min score for the environment
     score_history = []
 
+    observations = []
+
     for i in range(n_games):
         observation = env.reset()  # could be state?
         done = False
         score = 0
         while not done:
-            action, prob, val = agent.choose_action(observation=observation)
+            action, prob, val = agent(observation=observation)
             # remove info when using our env
             observation_, reward, done, info = env.step(action)
             n_steps += 1
@@ -74,6 +77,7 @@ def main(training_steps=256, batch_size=8, n_epochs=4, alpha=0.0005, n_games=500
                 agent.learn()
                 learn_iters += 1
             observation = observation_
+            observations.append(observation)
         score_history.append(score)
         avg_score = np.mean(score_history[-100:])
         # env.show_plots()

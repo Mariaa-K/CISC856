@@ -24,6 +24,7 @@ class DrAC(keras.Model):
                  aug_coef=0.1,
                  env_name=None,
                  batch_size=8):
+        super(DrAC, self).__init__()
 
         self.actor_critic = actor_critic
 
@@ -39,6 +40,7 @@ class DrAC(keras.Model):
         self.max_grad_norm = max_grad_norm
 
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=lr, epsilon=eps)
+        self.actor_critic.compile(optimizer=self.optimizer)
 
         self.aug_id = aug_id
         self.aug_func = aug_func
@@ -66,8 +68,8 @@ class DrAC(keras.Model):
         """Size of rnn_hx."""
         return self.actor_critic.recurrent_hidden_state_size
 
-    def call(self, **kwargs):
-        return self.actor_critic(**kwargs)
+    def call(self, observation, **kwargs):
+        return self.actor_critic(observation=observation, **kwargs)
         # value, actor_features, rnn_hxs = self.base(inputs, rnn_hxs, masks)
         # action_probs = self.linear(actor_features)
         # dist = tfp.distributions.Categorical(action_probs)
@@ -129,7 +131,7 @@ class DrAC(keras.Model):
         # action_loss_epoch = 0
         # dist_entropy_epoch = 0
 
-        for e in range(self.ppo_epoch):
+        for _ in range(self.ppo_epoch):
             state_arr, action_arr, old_prob_arr, vals_arr,\
                 reward_arr, dones_arr, batches = \
                 self.memory.generate_batches()
@@ -146,14 +148,14 @@ class DrAC(keras.Model):
                     discount *= self.gamma*self.gae_lambda
                 advantage[t] = a_t
 
-            for sample in batches:
+            for batch in batches:
                 with tf.GradientTape() as tape:
-                    obs_batch = tf.convert_to_tensor(state_arr[sample])
-                    old_action_log_probs_batch = tf.convert_to_tensor(old_prob_arr[sample])
-                    actions_batch = tf.convert_to_tensor(action_arr[sample])
-                    value_preds_batch = tf.convert_to_tensor(vals_arr[sample])
-                    adv_targ = tf.convert_to_tensor(advantage[sample])
-                    return_batch = tf.convert_to_tensor(reward_arr[sample])
+                    obs_batch = tf.convert_to_tensor(state_arr[batch])
+                    old_action_log_probs_batch = tf.convert_to_tensor(old_prob_arr[batch])
+                    actions_batch = tf.convert_to_tensor(action_arr[batch])
+                    value_preds_batch = tf.convert_to_tensor(vals_arr[batch])
+                    adv_targ = tf.convert_to_tensor(advantage[batch])
+                    return_batch = tf.convert_to_tensor(reward_arr[batch])
                     recurrent_hidden_states_batch = None
                     masks_batch = None
 
