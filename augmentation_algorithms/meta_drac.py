@@ -5,9 +5,11 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.initializers import Orthogonal
 import tensorflow_probability as tfp
 from memory import PPOMemory
+from agent import Agent
+from copy import copy
 
 
-class MetaDrAC(keras.model):
+class MetaDrAC(keras.Model):
     def __init__(self,
                  actor_critic,
                  aug_model,
@@ -150,9 +152,6 @@ class MetaDrAC(keras.model):
                     action_loss_epoch += tf.get_static_value(action_loss)
                     dist_entropy_epoch += tf.get_static_value(dist_entropy)
 
-                    if self.aug_func:
-                        self.aug_func.change_randomization_params_all()
-
         num_updates = self.ppo_epoch * self.num_mini_batch
 
         value_loss_epoch /= num_updates
@@ -163,12 +162,14 @@ class MetaDrAC(keras.model):
 
     def meta_train_iter(self):
 
-        # TODO: Some bullshit about higher order gradients.
-        fmodel = None  # some model
-        diffopt = None  # some optimizer
+        fmodel = copy(self.aug_model)  # some model
+        fmodel.set_weights(self.aug_model.get_weights())
+
+        diffopt = self.aug_opt  # some optimizer
+
         state_arr, action_arr, old_prob_arr, vals_arr, \
-        reward_arr, dones_arr, batches = \
-            self.memory.generate_batches()
+        reward_arr, dones_arr, train_batches, test_batches = \
+            self.memory.meta_generate_batches()
 
         values = vals_arr
 
@@ -178,11 +179,13 @@ class MetaDrAC(keras.model):
         train_loss = 0
         train_num_steps = 0
 
-        for batch in batches:
+        for batch in train_batches:
             if train_num_steps >= self.meta_num_train_steps:
                 break
 
-            with tf.GradientTape() as tape:
+            with tf.GradientTape(watch_accessed_variables=False) as tape:
+                tape.watch(fmodel.trainable_variables)
+
                 obs_batch = tf.convert_to_tensor(state_arr[batch])
                 old_action_log_probs_batch = tf.convert_to_tensor(old_prob_arr[batch])
                 actions_batch = tf.convert_to_tensor(action_arr[batch])
@@ -237,26 +240,19 @@ class MetaDrAC(keras.model):
                               aug_loss * self.aug_coef
                               )
                 train_loss += total_loss
-                grad = tape.gradient(total_loss, self.aug_model.trainable_variables)
+                grad = tape.gradient(total_loss, fmodel.trainable_variables)
 
-                diffopt.apply_gradients(zip(grad, self.aug_model.trainable_variables))
+                diffopt.apply_gradients(zip(grad, fmodel.trainable_variables))
 
                 train_num_steps += 1
 
-        state_arr, action_arr, old_prob_arr, vals_arr, \
-        reward_arr, dones_arr, batches = \
-            self.memory.generate_batches()
-
-        values = vals_arr
-
-        advantage = np.expand_dims(np.asarray(reward_arr).astype(np.float32), axis=1) - np.asarray(values).astype(np.float32)
-        advantage = (advantage - advantage.mean()) / (advantage.std() + 1e-5)
-
         test_num_steps = 0
-        for batch in batches:
+        for batch in test_batches:
             if test_num_steps >= self.meta_num_test_steps:
                 break
-            with tf.GradientTape() as tape:
+            with tf.GradientTape(watch_accessed_variables=False) as tape:
+                tape.watch(fmodel.trainable_variables)
+
                 obs_batch = tf.convert_to_tensor(state_arr[batch])
                 old_action_log_probs_batch = tf.convert_to_tensor(old_prob_arr[batch])
                 actions_batch = tf.convert_to_tensor(action_arr[batch])
@@ -312,7 +308,7 @@ class MetaDrAC(keras.model):
                               )
 
                 test_num_steps += 1
-        grad = tape.gradient(total_loss, self.aug_model.trainable_variables)
+        grad = tape.gradient(total_loss, fmodel.trainable_variables)
 
         grad = [tf.clip_by_norm(g, self.meta_grad_clip) for g in grad]
         self.aug_opt.apply_gradients(zip(grad, self.aug_model.trainable_variables))

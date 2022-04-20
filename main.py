@@ -3,15 +3,17 @@ import environments
 import numpy as np
 from agent import Agent, Policy
 from utils import plot_learning_curve, display_video
+from networks import AugCNN
 import time
 import gym
 import data_augs
 from environments.gymwrap import gymWrapper
 from augmentation_algorithms.drac import DrAC
 from augmentation_algorithms.ucb_drac import UCBDrAC
+from augmentation_algorithms.meta_drac import MetaDrAC
 
 
-def main(training_steps=256, batch_size=8, n_epochs=4, alpha=0.0005, n_games=500):
+def main(training_steps=256 * 64, batch_size=8, n_epochs=4, alpha=0.0005, n_games=500):
     plots_directory = 'plots/'
     learn_iters = 0  # number of times we call learn function
     avg_score = 0
@@ -57,6 +59,14 @@ def main(training_steps=256, batch_size=8, n_epochs=4, alpha=0.0005, n_games=500
         agent = UCBDrAC(actor_critic, clip_param=0.2, ppo_epoch=n_epochs, num_mini_batch=8, value_loss_coef=0.5,
                         entropy_coef=0.01, lr=alpha, eps=1e-5, max_grad_norm=0.5, aug_list=aug_list,
                         aug_id=aug_id, aug_func=aug_to_func['rotate'](batch_size=batch_size))
+    elif current_algorithm == 'meta_drac':
+        aug_id = data_augs.identity
+        aug_model = AugCNN()
+        agent = MetaDrAC(actor_critic, aug_model, clip_param=0.2, ppo_epoch=n_epochs, num_mini_batch=8, value_loss_coef=0.5,
+                         entropy_coef=0.01, lr=alpha, eps=1e-5, max_grad_norm=0.5, aug_id=aug_id,
+                         meta_num_test_steps=1, meta_num_train_steps=1)
+    else:
+        agent = actor_critic
 
 
     best_score = env.reward_range[0]  # min score for the environment

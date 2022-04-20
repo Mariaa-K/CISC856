@@ -252,3 +252,13 @@ class ResNetBase(NNBase):
             x, rnn_hxs = self._forward_gru(x, rnn_hxs, masks)
 
         return self.critic_linear(x), x, rnn_hxs
+
+
+class AugCNN(keras.Model):
+    def __init__(self):
+        super(AugCNN, self).__init__()
+
+        self.aug = Conv2D(3, kernel_size=3, padding='same')
+
+    def call(self, obs):
+        return self.aug(obs)

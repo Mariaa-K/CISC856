@@ -14,7 +14,7 @@ class PPOMemory:
         self.returns = []
         self.gamma = gamma
         self.gae_lambda = gae_lambda
-
+        self.split_ratio = 0.05
         self.batch_size = batch_size
 
     def generate_batches(self, advantages=None, recurrent=False):
@@ -40,6 +40,28 @@ class PPOMemory:
             np.array(self.rnn_hxs),\
             np.array(self.masks),\
             batches
+
+    def meta_generate_batches(self):
+        n_states = len(self.states)
+        batch_start = np.arange(0, n_states, self.batch_size)
+        split_size = int(self.batch_size * (1 - self.split_ratio))
+
+        idxs = range(self.batch_size)
+        train_idxs = np.asarray(idxs[:split_size])
+        valid_idxs = np.asarray(idxs[split_size:])
+        np.random.shuffle(train_idxs)
+        np.random.shuffle(valid_idxs)
+        train_batches = [train_idxs[i:i+self.batch_size] for i in batch_start]
+        valid_batches = [valid_idxs[i:i+self.batch_size] for i in batch_start]
+
+        return np.array(self.states), \
+               np.array(self.actions), \
+               np.array(self.probs), \
+               np.array(self.vals), \
+               np.array(self.returns), \
+               np.array(self.dones), \
+               train_batches, valid_batches
+
 
     def store_memory(self, state, action, probs, vals, reward, done, rnn_hxs=None, masks=None):
         self.states.append(state)
