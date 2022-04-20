@@ -59,12 +59,6 @@ class DrAC(keras.Model):
         print('... loading models [Not Implemented] ...')
     
     def learn(self):  # , rollouts, returns, predicted_value, recurrent_generator, feed_forward_generator):
-        # TODO: Figure out if I want to replicate the "rollouts" class, or just pass stuff in to the update function.
-        # advantages = returns[:-1] - predicted_value[:-1]  # Take all but the latest ones
-        # advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-5)
-
-        # TODO: Do we want to use a recurrent generator for the recurrent networks?
-
         state_arr, action_arr, old_prob_arr, vals_arr, \
         reward_arr, dones_arr, batches = \
             self.memory.generate_batches()

@@ -13,7 +13,7 @@ from augmentation_algorithms.ucb_drac import UCBDrAC
 from augmentation_algorithms.meta_drac import MetaDrAC
 
 
-def main(training_steps=256 * 64, batch_size=8, n_epochs=4, alpha=0.0005, n_games=500):
+def main(training_steps=256, batch_size=8, n_epochs=4, alpha=0.0005, n_games=100, num_envs=1):
     plots_directory = 'plots/'
     learn_iters = 0  # number of times we call learn function
     avg_score = 0
@@ -41,14 +41,14 @@ def main(training_steps=256 * 64, batch_size=8, n_epochs=4, alpha=0.0005, n_game
     #     observation_type='position',  # Maria - uncomment this line for easier and faster algorithm confirmation
     # )
     env_name = 'CartPole-v1'
-    # env = gymWrapper(env_name, img_source='color')
+    env = gymWrapper(env_name, img_source='color', num_envs=num_envs)
     env_name = 'starpilot'
-    env = environments.ProcgenEnv(env_name)
+    # env = environments.ProcgenEnv(env_name)
     actor_critic = Agent(observation_space=env.observation_space, n_actions=env.actions_count, batch_size=batch_size,
                          alpha=alpha, n_epochs=n_epochs,
                          input_dims=env.observation_space.shape)
 
-    current_algorithm = 'DRAC'
+    current_algorithm = 'UCB_DRAC'
     if current_algorithm == 'DRAC':
         agent = DrAC(actor_critic, clip_param=0.2, ppo_epoch=n_epochs, num_mini_batch=8, value_loss_coef=0.5,
                      entropy_coef=0.01, lr=alpha, eps=1e-5, max_grad_norm=0.5,

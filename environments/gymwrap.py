@@ -7,11 +7,11 @@ from environments.dmc2gym import natural_imgsource
 
 
 class gymWrapper:
-    def __init__(self, env_name, resource_files=None, img_source=None, total_frames=0):
+    def __init__(self, env_name, resource_files=None, img_source=None, total_frames=0, num_envs=1):
         self.observation_type = 'image'
         self.screen_height = 64
         self.screen_width = 64
-        self.env = gym.make(env_name)
+        self.env = gym.make(env_name, num_envs=num_envs)
         self.reset()
         self._img_source = img_source
         if img_source is not None:
