@@ -196,6 +196,7 @@ class Agent(keras.Model):
         else:
             state = tf.convert_to_tensor(observation)
         value, logits, rnn_hxs = self.actor(state, rnn_hxs, masks)
+        logits = self.linear(logits)
         dist = tfp.distributions.Categorical(logits)
         action = dist.sample()
         log_prob = dist.log_prob(action)
@@ -205,7 +206,7 @@ class Agent(keras.Model):
         value = value.numpy()[0]
         log_prob = log_prob.numpy()[0]
 
-        return action, log_prob, value
+        return action, log_prob, value, rnn_hxs
 
     def call(self, observation, rnn_hxs=None, masks=None):
         if observation.ndim < 4:
@@ -213,6 +214,7 @@ class Agent(keras.Model):
         else:
             state = tf.convert_to_tensor(observation)
         value, logits, rnn_hxs = self.actor(state, rnn_hxs, masks)
+        logits = self.linear(logits)
         dist = tfp.distributions.Categorical(logits)
         action = dist.sample()
         log_prob = dist.log_prob(action)
@@ -221,7 +223,7 @@ class Agent(keras.Model):
         action = action.numpy()[0]
         value = value.numpy()[0]
         log_prob = log_prob.numpy()[0]
-        return action, log_prob, value
+        return action, log_prob, value, rnn_hxs
 
     def evaluate_actions(self, inputs, rnn_hxs, masks, action):  # -> (value, action_log_probs, dist_entropy, [rnn_hxs])
         
@@ -264,6 +266,7 @@ class Agent(keras.Model):
                     masks = None
 
                     value, logits, rnn_hxs = self.actor(states, rnn_hxs, masks)
+                    logits = self.linear(logits)
                     dist = tfp.distributions.Categorical(logits)
                     new_probs = dist.log_prob(actions)
 

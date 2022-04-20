@@ -40,6 +40,7 @@ class gymWrapper:
     def observation_space(self):
         return self._observe()
 
+    @property
     def actions_count(self):
         return self.env.action_space.n
 

@@ -550,7 +550,7 @@ def identity(x):
 
 
 class Identity:
-    def __init__(self):
+    def __init__(self, batch_size=1):
         pass
 
     def do_augmentation(self, x):

@@ -25,7 +25,7 @@ class RL2DrAC(keras.Model):
                  max_grad_norm=None,
                  aug_list=None,
                  aug_id=None,
-                 aug_func=None,
+                 # aug_func=None,
                  aug_coef=0.1,
                  num_aug_types=8,
                  recurrent_hidden_size=32,
@@ -53,15 +53,15 @@ class RL2DrAC(keras.Model):
         self.max_grad_norm = max_grad_norm
         self.aug_list = aug_list
         self.aug_id = aug_id
-        self.aug_func = aug_func
+        # self.aug_func = aug_func
         self.aug_coef = aug_coef
 
         self.num_aug_types = num_aug_types
         self.num_action_selected = [0.] * self.num_aug_types
         self.num_actions = num_actions
 
-        self.rl2_masks = tf.ones(1, 1)
-        self.rl2_recurrent_hidden_states = tf.zeros(1, recurrent_hidden_size)
+        self.rl2_masks = tf.ones((1, 1))
+        self.rl2_recurrent_hidden_states = tf.zeros((1, recurrent_hidden_size))
         self.rl2_obs = tf.zeros((1, num_actions + 1))
 
         self.step = 0
@@ -69,13 +69,30 @@ class RL2DrAC(keras.Model):
         self.env_name = env_name
         self.memory = PPOMemory(batch_size)
 
+    def store_transition(self, state, action, probs, vals, reward, done):
+        self.memory.store_memory(state, action, probs, vals, reward, done)
+
+    def save_models(self):
+        print('... saving models [Not Implemented] ...')
+
+    def load_models(self):
+        print('... loading models [Not Implemented] ...')
+
+    @property
+    def is_recurrent(self):
+        return self.actor_critic.is_recurrent
+
+    @property
+    def recurrent_hidden_state_size(self):
+        """Size of rnn_hx."""
+        return self.actor_critic.recurrent_hidden_state_size
+
     def convert_to_onehot(self, action_value):
-        self.action_onehot = tf.zeros(1, self.num_actions)
+        self.action_onehot = tf.zeros((1, self.num_actions))
         self.action_onehot[0][action_value] = 1
         return self.action_onehot
 
     def update(self):
-        
             state_arr, action_arr, old_prob_arr, vals_arr,\
                 reward_arr, dones_arr, rnn_hxs, masks, batches = \
                 self.memory.generate_batches(recurrent=True)
@@ -91,7 +108,6 @@ class RL2DrAC(keras.Model):
                         1-int(dones_arr[k])) - values[k])
                     discount *= self.gamma*self.gae_lambda
                 advantage[t] = a_t
-
 
             if self.step > 0:
                 with tf.GradientTape() as tape:
@@ -116,8 +132,9 @@ class RL2DrAC(keras.Model):
             self.current_aug_func = self.aug_list[self.rl2_action]
             self.num_action_selected[tf.get_static_value(self.rl2_action)] += 1
 
-            advantages = reward_arr[:-1] - vals_arr[:-1]
-            advantages = (advantages - tf.math.reduce_mean(advantages)) / (tf.math.reduce_std(advantages) + 1e-5)
+            advantage = np.expand_dims(np.asarray(reward_arr).astype(np.float32), axis=1) - np.asarray(values).astype(
+                np.float32)
+            advantage = (advantage - advantage.mean()) / (advantage.std() + 1e-5)
 
             for e in range(self.ppo_epoch):
                 for sample in batches:

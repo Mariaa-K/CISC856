@@ -2,7 +2,7 @@ import numpy as np
 
 
 class PPOMemory:
-    def __init__(self, batch_size):
+    def __init__(self, batch_size, gamma=0.99, gae_lambda=0.5):
         self.states = []
         self.probs = []
         self.vals = []
@@ -11,10 +11,13 @@ class PPOMemory:
         self.dones = []
         self.rnn_hxs = []
         self.masks = []
+        self.returns = []
+        self.gamma = gamma
+        self.gae_lambda = gae_lambda
 
         self.batch_size = batch_size
 
-    def generate_batches(self, recurrent=False):
+    def generate_batches(self, advantages=None, recurrent=False):
         n_states = len(self.states)
         batch_start = np.arange(0, n_states, self.batch_size)
         indices = np.arange(n_states, dtype=np.int64)
@@ -25,14 +28,14 @@ class PPOMemory:
                 np.array(self.actions),\
                 np.array(self.probs),\
                 np.array(self.vals),\
-                np.array(self.rewards),\
+                np.array(self.returns),\
                 np.array(self.dones),\
                 batches
         return np.array(self.states),\
             np.array(self.actions),\
             np.array(self.probs),\
             np.array(self.vals),\
-            np.array(self.rewards),\
+            np.array(self.returns),\
             np.array(self.dones),\
             np.array(self.rnn_hxs),\
             np.array(self.masks),\
@@ -57,3 +60,12 @@ class PPOMemory:
         self.vals = []
         self.rnn_hxs = []
         self.masks = []
+
+    def commpute_returns(self):
+        gae = 0
+        self.returns = [0.] * len(self.rewards)
+        for step in reversed(range(len(self.rewards) - 1)):
+            delta = self.rewards[step] + self.gamma * self.vals[step + 1] - self.vals[step]
+            gae = delta + self.gamma * self.gae_lambda * gae
+            self.returns[step] = float(gae + self.vals[step])
+
