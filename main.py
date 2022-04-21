@@ -31,7 +31,7 @@ def main(training_steps=256, batch_size=8, n_epochs=4, alpha=0.0005, n_games=100
         'flip': data_augs.Flip,
         'rotate': data_augs.Rotate,
         'cutout': data_augs.Cutout,
-        'cutout-color': data_augs.CutoutColor,
+        # 'cutout-color': data_augs.CutoutColor,
         # 'color-jitter': data_augs.ColorJitter,
         'identity': data_augs.Identity,
     }
@@ -40,26 +40,26 @@ def main(training_steps=256, batch_size=8, n_epochs=4, alpha=0.0005, n_games=100
     #     task='swingup',
     #     observation_type='position',  # Maria - uncomment this line for easier and faster algorithm confirmation
     # )
-    env_name = 'CartPole-v1'
-    env = gymWrapper(env_name, img_source='color', num_envs=num_envs)
+    # env_name = 'CartPole-v1'
+    # env = gymWrapper(env_name, img_source='color', num_envs=num_envs)
     env_name = 'starpilot'
-    # env = environments.ProcgenEnv(env_name)
+    env = environments.ProcgenEnv(env_name)
     actor_critic = Agent(observation_space=env.observation_space, n_actions=env.actions_count, batch_size=batch_size,
                          alpha=alpha, n_epochs=n_epochs,
                          input_dims=env.observation_space.shape)
 
-    current_algorithm = 'UCB_DRAC'
-    if current_algorithm == 'DRAC':
+    current_algorithm = 'DRAC'
+    if current_algorithm[:4] == 'DRAC':
         agent = DrAC(actor_critic, clip_param=0.2, ppo_epoch=n_epochs, num_mini_batch=8, value_loss_coef=0.5,
                      entropy_coef=0.01, lr=alpha, eps=1e-5, max_grad_norm=0.5,
-                     aug_id=data_augs.identity, aug_func=aug_to_func['rotate'](batch_size=batch_size))
+                     aug_id=data_augs.identity, aug_func=aug_to_func[current_algorithm[5:]](batch_size=batch_size))
     elif current_algorithm == 'UCB_DRAC':
         aug_id = data_augs.identity
         aug_list = [aug_to_func[t](batch_size=batch_size) for t in list(aug_to_func.keys())]
         agent = UCBDrAC(actor_critic, clip_param=0.2, ppo_epoch=n_epochs, num_mini_batch=8, value_loss_coef=0.5,
                         entropy_coef=0.01, lr=alpha, eps=1e-5, max_grad_norm=0.5, aug_list=aug_list,
-                        aug_id=aug_id, aug_func=aug_to_func['rotate'](batch_size=batch_size))
-    elif current_algorithm == 'meta_drac':
+                        aug_id=aug_id)
+    elif current_algorithm == 'META_DRAC':
         aug_id = data_augs.identity
         aug_model = AugCNN()
         agent = MetaDrAC(actor_critic, aug_model, clip_param=0.2, ppo_epoch=n_epochs, num_mini_batch=8, value_loss_coef=0.5,
@@ -104,7 +104,7 @@ def main(training_steps=256, batch_size=8, n_epochs=4, alpha=0.0005, n_games=100
         print('episode', i, 'score %.1f' % score, 'avg score %.1f' % avg_score,
               'time_steps', n_steps, 'learning_steps', learn_iters)
     x = [i + 1 for i in range(len(score_history))]
-    plot_learning_curve(x, score_history, f"{plots_directory}{env_name}{time.time()}.png")
+    plot_learning_curve(x, score_history, f"{plots_directory}{env_name}{current_algorithm}{time.time()}.png")
 
 
 main()

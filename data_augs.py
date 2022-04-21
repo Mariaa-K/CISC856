@@ -29,8 +29,8 @@ class Grayscale(object):
         
     def do_augmentation(self, x):
         x_copy = x.numpy()
-        x_copy = [cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) for img in x_copy]
-        x_copy = [cv2.cvtColor(img, cv2.COLOR_GRAY2BGR) for img in x_copy]
+        x_copy = [cv2.cvtColor(img.astype('float32'), cv2.COLOR_BGR2GRAY) for img in x_copy]
+        x_copy = [cv2.cvtColor(img.astype('float32'), cv2.COLOR_GRAY2BGR) for img in x_copy]
         # x_copy = self.transform(x_copy)
         # x_copy = x_copy.repeat([1, 3, 1, 1])
         return tf.convert_to_tensor(x_copy)

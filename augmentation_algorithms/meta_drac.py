@@ -7,6 +7,7 @@ import tensorflow_probability as tfp
 from memory import PPOMemory
 from agent import Agent
 from copy import copy
+from networks import AugCNN
 
 
 class MetaDrAC(keras.Model):
@@ -162,14 +163,16 @@ class MetaDrAC(keras.Model):
 
     def meta_train_iter(self):
 
-        fmodel = copy(self.aug_model)  # some model
-        fmodel.set_weights(self.aug_model.get_weights())
 
         diffopt = self.aug_opt  # some optimizer
 
         state_arr, action_arr, old_prob_arr, vals_arr, \
         reward_arr, dones_arr, train_batches, test_batches = \
             self.memory.meta_generate_batches()
+
+        fmodel = AugCNN()
+        fmodel(tf.convert_to_tensor(state_arr[train_batches[0]]))
+        fmodel.set_weights(self.aug_model.get_weights())
 
         values = vals_arr
 

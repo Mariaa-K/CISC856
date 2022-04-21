@@ -11,7 +11,7 @@ class gymWrapper:
         self.observation_type = 'image'
         self.screen_height = 64
         self.screen_width = 64
-        self.env = gym.make(env_name, num_envs=num_envs)
+        self.env = gym.make(env_name)
         self.reset()
         self._img_source = img_source
         if img_source is not None:
@@ -64,7 +64,7 @@ class gymWrapper:
                                       obs[:, :, 2] == np.asarray([255]))
                 bg = self._bg_source.get_image()
                 obs[mask] = bg[mask]
-            return obs
+            return obs/255.
 
     def step(self, action):
         obs, reward, done, info = self.env.step(action)
